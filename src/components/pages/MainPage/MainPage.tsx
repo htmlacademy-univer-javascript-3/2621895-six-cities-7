@@ -1,4 +1,5 @@
-import { CityCard } from '../../CityCard';
+import { CityCard } from '../../CityCard/CityCard';
+
 type MainPageProps = {
   offersCount: number;
 };
