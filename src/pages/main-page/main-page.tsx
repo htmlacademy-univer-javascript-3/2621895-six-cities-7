@@ -3,20 +3,49 @@ import { Link } from 'react-router-dom';
 import { OffersList } from '../../components/offers-list';
 import { Offer } from '../../mocks/offers';
 import { Map } from '../../components/map/map';
-import { ACTIVE_CITY } from '../../constants/constants';
+import { CitiesList } from '../../components/cities-list/cities-list';
+import { useDispatch, useSelector } from 'react-redux';
+import { RootState } from '../../store';
+import { CITIES } from '../../constants/constants';
+import { cityChangeAction } from '../../store/actions/action';
+import { SortingOptions } from '../../components/sorting-options/sorting-options';
 
 type MainPageProps = {
-  offersCount: number;
   offers: Offer[];
 };
 
-const MainPage = ({ offersCount, offers }: MainPageProps) => {
+const OPTIONS = [
+  'Popular',
+  'Price: low to high',
+  'Price: high to low',
+  'Top rated first',
+];
+
+const MainPage = ({ offers }: MainPageProps) => {
+  const dispatch = useDispatch();
+  const activeCity = useSelector((state: RootState) => state.city);
+
   const [selectedOfferId, setSelectedOfferId] = useState<string | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const [activeFilter, setActiveFilter] = useState('Popular');
 
   const filteredOffers = offers.filter(
-    (offer) => offer.city.name === ACTIVE_CITY,
+    (offer) => offer.city.name === activeCity,
   );
   const city = filteredOffers[0]?.city;
+
+  const sortedOffers = [...filteredOffers].sort((a, b) => {
+    switch (activeFilter) {
+      case 'Price: low to high':
+        return a.price - b.price;
+      case 'Price: high to low':
+        return b.price - a.price;
+      case 'Top rated first':
+        return b.rating - a.rating;
+      default:
+        return 0;
+    }
+  });
 
   return (
     <div className="page page--gray page--main">
@@ -66,38 +95,14 @@ const MainPage = ({ offersCount, offers }: MainPageProps) => {
         <h1 className="visually-hidden">Cities</h1>
         <div className="tabs">
           <section className="locations container">
-            <ul className="locations__list tabs__list">
-              <li className="locations__item">
-                <a className="locations__item-link tabs__item" href="#">
-                  <span>Paris</span>
-                </a>
-              </li>
-              <li className="locations__item">
-                <a className="locations__item-link tabs__item" href="#">
-                  <span>Cologne</span>
-                </a>
-              </li>
-              <li className="locations__item">
-                <a className="locations__item-link tabs__item" href="#">
-                  <span>Brussels</span>
-                </a>
-              </li>
-              <li className="locations__item">
-                <a className="locations__item-link tabs__item tabs__item--active">
-                  <span>Amsterdam</span>
-                </a>
-              </li>
-              <li className="locations__item">
-                <a className="locations__item-link tabs__item" href="#">
-                  <span>Hamburg</span>
-                </a>
-              </li>
-              <li className="locations__item">
-                <a className="locations__item-link tabs__item" href="#">
-                  <span>Dusseldorf</span>
-                </a>
-              </li>
-            </ul>
+            <CitiesList
+              cities={CITIES}
+              activeCity={activeCity}
+              onCityChange={
+                (selectedCity) => dispatch(cityChangeAction(selectedCity))
+                // eslint-disable-next-line react/jsx-curly-newline
+              }
+            />
           </section>
         </div>
         <div className="cities">
@@ -105,37 +110,35 @@ const MainPage = ({ offersCount, offers }: MainPageProps) => {
             <section className="cities__places places">
               <h2 className="visually-hidden">Places</h2>
               <b className="places__found">
-                {offersCount} places to stay in Amsterdam
+                {filteredOffers.length} places to stay in {activeCity}
               </b>
-              <form className="places__sorting" action="#" method="get">
+              <form
+                className="places__sorting"
+                action="#"
+                method="get"
+                onClick={() => setIsOpen(!isOpen)}
+              >
                 <span className="places__sorting-caption">Sort by</span>
                 <span className="places__sorting-type" tabIndex={0}>
-                  Popular
+                  {activeFilter}
                   <svg className="places__sorting-arrow" width="7" height="4">
                     <use href="#icon-arrow-select"></use>
                   </svg>
                 </span>
-                <ul className="places__options places__options--custom places__options--opened">
-                  <li
-                    className="places__option places__option--active"
-                    tabIndex={0}
-                  >
-                    Popular
-                  </li>
-                  <li className="places__option" tabIndex={0}>
-                    Price: low to high
-                  </li>
-                  <li className="places__option" tabIndex={0}>
-                    Price: high to low
-                  </li>
-                  <li className="places__option" tabIndex={0}>
-                    Top rated first
-                  </li>
-                </ul>
+                {isOpen && (
+                  <SortingOptions
+                    options={OPTIONS}
+                    activeFilter={activeFilter}
+                    onFilterChange={(option) => {
+                      setActiveFilter(option);
+                      setIsOpen(false);
+                    }}
+                  />
+                )}
               </form>
               <div className="cities__places-list places__list tabs__content">
                 <OffersList
-                  offers={filteredOffers}
+                  offers={sortedOffers}
                   onCardHover={setSelectedOfferId}
                 />
               </div>
